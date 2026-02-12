@@ -20,6 +20,34 @@ function saveToStorage(key, data) {
     localStorage.setItem(key, JSON.stringify(data));
 }
 
+// ──────── Open Hours Helper ────────
+
+/**
+ * Determine if a restaurant is currently open based on its openHours string.
+ * Supports formats like "10:00-22:00" and overnight like "17:00-00:00" or "22:00-04:00".
+ * Returns false if openHours is empty or unparseable.
+ */
+export function isOpenNow(restaurant) {
+    const hours = restaurant?.openHours;
+    if (!hours || typeof hours !== 'string') return false;
+
+    const match = hours.match(/^(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})$/);
+    if (!match) return false;
+
+    const openMin = parseInt(match[1]) * 60 + parseInt(match[2]);
+    const closeMin = parseInt(match[3]) * 60 + parseInt(match[4]);
+
+    const now = new Date();
+    const nowMin = now.getHours() * 60 + now.getMinutes();
+
+    // Overnight case (e.g. 17:00-00:00 or 22:00-04:00)
+    if (closeMin <= openMin) {
+        return nowMin >= openMin || nowMin < closeMin;
+    }
+    // Normal case (e.g. 10:00-22:00)
+    return nowMin >= openMin && nowMin < closeMin;
+}
+
 // ──────── Restaurants CRUD ────────
 
 export function getRestaurants() {
@@ -101,7 +129,6 @@ export function clearExcluded() {
 
 export function filterRestaurants(restaurants, filters) {
     const {
-        priceLevels = [],
         cuisines = [],
         maxTime = null,
         peopleCount = null,
@@ -112,13 +139,12 @@ export function filterRestaurants(restaurants, filters) {
 
     return restaurants.filter((r) => {
         if (excludeIds.includes(r.id)) return false;
-        if (priceLevels.length > 0 && !priceLevels.includes(r.priceRange)) return false;
         if (cuisines.length > 0 && !r.cuisineTypes.some((c) => cuisines.includes(c))) return false;
         if (maxTime !== null && r.timeToServe > maxTime) return false;
         if (peopleCount !== null) {
             if (peopleCount < r.minPeople || peopleCount > r.maxPeople) return false;
         }
-        if (openNow && !r.isOpenNow) return false;
+        if (openNow && !isOpenNow(r)) return false;
         if (favoritesOnly && !r.isFavorite) return false;
         return true;
     });
@@ -129,14 +155,14 @@ export function filterRestaurants(restaurants, filters) {
 export function exportCSV(restaurants) {
     const headers = [
         'name', 'cuisineTypes', 'priceRange', 'location', 'timeToServe',
-        'minPeople', 'maxPeople', 'isOpenNow', 'dineOptions', 'dietTags',
-        'spiceLevel', 'rating', 'notes', 'linkGoogleMaps', 'websiteLink',
+        'minPeople', 'maxPeople', 'openHours', 'dineOptions', 'rating',
+        'notes', 'linkGoogleMaps', 'websiteLink',
     ];
     const rows = restaurants.map((r) =>
         headers.map((h) => {
             const val = r[h];
             if (Array.isArray(val)) return `"${val.join(', ')}"`;
-            if (typeof val === 'string' && val.includes(',')) return `"${val}"`;
+            if (typeof val === 'string' && (val.includes(',') || val.includes('"'))) return `"${val.replace(/"/g, '""')}"`;
             return val ?? '';
         }).join(',')
     );
@@ -149,16 +175,16 @@ export function importCSV(csvText) {
     const headers = lines[0].split(',').map((h) => h.trim());
     const results = [];
     for (let i = 1; i < lines.length; i++) {
-        const values = lines[i].match(/(".*?"|[^,]+|(?<=,)(?=,))/g) || [];
+        const values = lines[i].match(/(\".*?\"|[^,]+|(?<=,)(?=,))/g) || [];
         const obj = { id: uuidv4() };
         headers.forEach((h, idx) => {
             let val = (values[idx] || '').replace(/^"|"$/g, '').trim();
-            if (['cuisineTypes', 'dineOptions', 'dietTags'].includes(h)) {
+            if (['cuisineTypes', 'dineOptions'].includes(h)) {
                 obj[h] = val ? val.split(',').map((s) => s.trim()) : [];
-            } else if (['timeToServe', 'minPeople', 'maxPeople', 'rating'].includes(h)) {
+            } else if (['timeToServe', 'minPeople', 'maxPeople'].includes(h)) {
                 obj[h] = parseInt(val, 10) || 0;
-            } else if (h === 'isOpenNow') {
-                obj[h] = val === 'true';
+            } else if (h === 'rating') {
+                obj[h] = parseFloat(val) || 0;
             } else {
                 obj[h] = val;
             }
@@ -167,6 +193,7 @@ export function importCSV(csvText) {
         obj.isFavorite = obj.isFavorite || false;
         obj.lastVisitedDate = obj.lastVisitedDate || null;
         obj.imageUrl = obj.imageUrl || '';
+        obj.openHours = obj.openHours || '';
         results.push(obj);
     }
     return results;

@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import RestaurantForm from '../components/RestaurantForm';
 import { useRestaurants } from '../context/RestaurantContext';
+import { isOpenNow } from '../store/restaurantStore';
 
 export default function RestaurantPage() {
     const {
@@ -132,7 +133,7 @@ export default function RestaurantPage() {
                                     {r.isFavorite && <span className="fav-badge">⭐ </span>}
                                     {r.name}
                                 </div>
-                                <div className="card-price">{r.priceRange}</div>
+                                <div className="card-price">{r.priceRange ? `฿${r.priceRange}` : ''}</div>
                             </div>
                             <div className="card-cuisines">
                                 {r.cuisineTypes.map((c) => (
@@ -142,17 +143,20 @@ export default function RestaurantPage() {
                             <div className="card-meta">
                                 <span>⏱️ {r.timeToServe}m</span>
                                 <span>👥 {r.minPeople}-{r.maxPeople}</span>
-                                <span>{r.isOpenNow ? '🟢 Open' : '🔴 Closed'}</span>
+                                <span>{isOpenNow(r) ? '🟢 Open' : '🔴 Closed'}</span>
                             </div>
                             {r.location && (
                                 <div className="card-meta mt-8">
                                     <span>📍 {r.location}</span>
                                 </div>
                             )}
+                            {r.openHours && (
+                                <div className="card-meta mt-8">
+                                    <span>🕐 {r.openHours}</span>
+                                </div>
+                            )}
                             <div className="star-rating mt-8" aria-label={`Rating: ${r.rating || 0} out of 5`}>
-                                {[1, 2, 3, 4, 5].map((s) => (
-                                    <span key={s} className={`star${s <= (r.rating || 0) ? ' filled' : ''}`} style={{ cursor: 'default' }} aria-hidden="true">★</span>
-                                ))}
+                                <span style={{ fontWeight: 700, color: 'var(--dora-yellow)' }}>⭐ {(r.rating || 0).toFixed(1)}</span>
                             </div>
                             <div className="card-actions">
                                 <button

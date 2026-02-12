@@ -7,7 +7,6 @@ import { useRestaurants } from '../context/RestaurantContext';
 import { filterRestaurants } from '../store/restaurantStore';
 
 const defaultFilters = {
-    priceLevels: [],
     cuisines: [],
     maxTime: null,
     peopleCount: null,

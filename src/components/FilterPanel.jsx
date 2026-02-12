@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import PropTypes from 'prop-types';
-import { CUISINE_OPTIONS, PRICE_LEVELS } from '../store/sampleData';
+import { CUISINE_OPTIONS } from '../store/sampleData';
 
 function FilterPanel({ filters, setFilters, candidateCount, onReset }) {
     const toggleChip = (key, value) => {
@@ -58,23 +58,6 @@ function FilterPanel({ filters, setFilters, candidateCount, onReset }) {
                                 Clear
                             </button>
                         )}
-                    </div>
-                </div>
-
-                {/* Budget */}
-                <div className="filter-section">
-                    <div className="filter-section-title" id="budget-filter-label">💰 Budget</div>
-                    <div className="chip-group" role="group" aria-labelledby="budget-filter-label">
-                        {PRICE_LEVELS.map((p) => (
-                            <button
-                                key={p}
-                                className={`chip${(filters.priceLevels || []).includes(p) ? ' active' : ''}`}
-                                onClick={() => toggleChip('priceLevels', p)}
-                                aria-pressed={(filters.priceLevels || []).includes(p)}
-                            >
-                                {p}
-                            </button>
-                        ))}
                     </div>
                 </div>
 
@@ -161,7 +144,6 @@ function FilterPanel({ filters, setFilters, candidateCount, onReset }) {
 
 FilterPanel.propTypes = {
     filters: PropTypes.shape({
-        priceLevels: PropTypes.arrayOf(PropTypes.string),
         cuisines: PropTypes.arrayOf(PropTypes.string),
         maxTime: PropTypes.number,
         peopleCount: PropTypes.number,

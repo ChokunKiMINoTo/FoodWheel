@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import PropTypes from 'prop-types';
-import { CUISINE_OPTIONS, PRICE_LEVELS, DINE_OPTIONS, DIET_TAGS, SPICE_LEVELS } from '../store/sampleData';
+import { CUISINE_OPTIONS, DINE_OPTIONS } from '../store/sampleData';
 
 export default function RestaurantForm({ restaurant, onSave, onCancel }) {
     const isEdit = Boolean(restaurant?.id);
@@ -8,16 +8,14 @@ export default function RestaurantForm({ restaurant, onSave, onCancel }) {
     const [form, setForm] = useState({
         name: restaurant?.name || '',
         cuisineTypes: restaurant?.cuisineTypes || [],
-        priceRange: restaurant?.priceRange || '$$',
+        priceRange: restaurant?.priceRange || '',
         location: restaurant?.location || '',
         timeToServe: restaurant?.timeToServe || 15,
         minPeople: restaurant?.minPeople || 1,
         maxPeople: restaurant?.maxPeople || 4,
-        isOpenNow: restaurant?.isOpenNow ?? true,
+        openHours: restaurant?.openHours || '',
         dineOptions: restaurant?.dineOptions || ['Dine-in'],
-        dietTags: restaurant?.dietTags || [],
-        spiceLevel: restaurant?.spiceLevel || 'None',
-        rating: restaurant?.rating || 3,
+        rating: restaurant?.rating || 0,
         notes: restaurant?.notes || '',
         linkGoogleMaps: restaurant?.linkGoogleMaps || '',
         websiteLink: restaurant?.websiteLink || '',
@@ -26,6 +24,7 @@ export default function RestaurantForm({ restaurant, onSave, onCancel }) {
     });
 
     const [errors, setErrors] = useState({});
+    const [customCuisine, setCustomCuisine] = useState('');
 
     const set = useCallback((key, val) => setForm((p) => ({ ...p, [key]: val })), []);
 
@@ -36,11 +35,18 @@ export default function RestaurantForm({ restaurant, onSave, onCancel }) {
         });
     }, []);
 
+    const addCustomCuisine = useCallback(() => {
+        const trimmed = customCuisine.trim();
+        if (trimmed && !form.cuisineTypes.includes(trimmed)) {
+            setForm((p) => ({ ...p, cuisineTypes: [...p.cuisineTypes, trimmed] }));
+        }
+        setCustomCuisine('');
+    }, [customCuisine, form.cuisineTypes]);
+
     const validate = () => {
         const e = {};
         if (!form.name.trim()) e.name = 'Name is required';
         if (form.cuisineTypes.length === 0) e.cuisineTypes = 'Pick at least 1 cuisine';
-        if (!form.priceRange) e.priceRange = 'Price is required';
         if (form.minPeople > form.maxPeople) e.people = 'Min must be ≤ Max';
         if (form.timeToServe <= 0) e.timeToServe = 'Must be positive';
         setErrors(e);
@@ -72,7 +78,7 @@ export default function RestaurantForm({ restaurant, onSave, onCancel }) {
                             className="form-input"
                             value={form.name}
                             onChange={(e) => set('name', e.target.value)}
-                            placeholder="e.g. Siam Spice Garden"
+                            placeholder="e.g. Groove"
                         />
                         {errors.name && <small style={{ color: 'var(--dora-red)' }} role="alert">{errors.name}</small>}
                     </div>
@@ -92,29 +98,47 @@ export default function RestaurantForm({ restaurant, onSave, onCancel }) {
                                     {c}
                                 </button>
                             ))}
+                            {/* Show any custom cuisines not in the preset list */}
+                            {form.cuisineTypes
+                                .filter((c) => !CUISINE_OPTIONS.includes(c))
+                                .map((c) => (
+                                    <button
+                                        type="button"
+                                        key={c}
+                                        className="chip active"
+                                        onClick={() => toggleArray('cuisineTypes', c)}
+                                        aria-pressed={true}
+                                    >
+                                        {c} ✕
+                                    </button>
+                                ))}
+                        </div>
+                        <div className="flex items-center gap-8" style={{ marginTop: 8 }}>
+                            <input
+                                className="form-input"
+                                style={{ flex: 1 }}
+                                value={customCuisine}
+                                onChange={(e) => setCustomCuisine(e.target.value)}
+                                placeholder="Add custom cuisine..."
+                                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addCustomCuisine(); } }}
+                            />
+                            <button type="button" className="btn btn-sm btn-secondary" onClick={addCustomCuisine}>Add</button>
                         </div>
                         {errors.cuisineTypes && (
                             <small style={{ color: 'var(--dora-red)' }} role="alert">{errors.cuisineTypes}</small>
                         )}
                     </div>
 
-                    {/* Price */}
+                    {/* Price Range */}
                     <div className="form-group">
-                        <label className="form-label" id="price-label">Price Range *</label>
-                        <div className="chip-group" role="radiogroup" aria-labelledby="price-label">
-                            {PRICE_LEVELS.map((p) => (
-                                <button
-                                    type="button"
-                                    key={p}
-                                    className={`chip${form.priceRange === p ? ' active' : ''}`}
-                                    onClick={() => set('priceRange', p)}
-                                    role="radio"
-                                    aria-checked={form.priceRange === p}
-                                >
-                                    {p}
-                                </button>
-                            ))}
-                        </div>
+                        <label className="form-label" htmlFor="restaurant-price">Price Range</label>
+                        <input
+                            id="restaurant-price"
+                            className="form-input"
+                            value={form.priceRange}
+                            onChange={(e) => set('priceRange', e.target.value)}
+                            placeholder="e.g. 60-100"
+                        />
                     </div>
 
                     {/* Location */}
@@ -125,7 +149,7 @@ export default function RestaurantForm({ restaurant, onSave, onCancel }) {
                             className="form-input"
                             value={form.location}
                             onChange={(e) => set('location', e.target.value)}
-                            placeholder="e.g. Sukhumvit Soi 11"
+                            placeholder="e.g. Tangsin"
                         />
                     </div>
 
@@ -179,6 +203,18 @@ export default function RestaurantForm({ restaurant, onSave, onCancel }) {
                         )}
                     </div>
 
+                    {/* Open Hours */}
+                    <div className="form-group">
+                        <label className="form-label" htmlFor="restaurant-hours">Open Hours</label>
+                        <input
+                            id="restaurant-hours"
+                            className="form-input"
+                            value={form.openHours}
+                            onChange={(e) => set('openHours', e.target.value)}
+                            placeholder="e.g. 10:00-22:00"
+                        />
+                    </div>
+
                     {/* Dine Options */}
                     <div className="form-group">
                         <label className="form-label" id="dine-label">Dine Options</label>
@@ -197,76 +233,24 @@ export default function RestaurantForm({ restaurant, onSave, onCancel }) {
                         </div>
                     </div>
 
-                    {/* Diet Tags */}
-                    <div className="form-group">
-                        <label className="form-label" id="diet-label">Dietary Tags</label>
-                        <div className="chip-group" role="group" aria-labelledby="diet-label">
-                            {DIET_TAGS.map((d) => (
-                                <button
-                                    type="button"
-                                    key={d}
-                                    className={`chip${form.dietTags.includes(d) ? ' active' : ''}`}
-                                    onClick={() => toggleArray('dietTags', d)}
-                                    aria-pressed={form.dietTags.includes(d)}
-                                >
-                                    {d}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Spice Level */}
-                    <div className="form-group">
-                        <label className="form-label" id="spice-label">Spice Level</label>
-                        <div className="chip-group" role="radiogroup" aria-labelledby="spice-label">
-                            {SPICE_LEVELS.map((s) => (
-                                <button
-                                    type="button"
-                                    key={s}
-                                    className={`chip${form.spiceLevel === s ? ' active' : ''}`}
-                                    onClick={() => set('spiceLevel', s)}
-                                    role="radio"
-                                    aria-checked={form.spiceLevel === s}
-                                >
-                                    {s === 'None' ? '😊' : s === 'Mild' ? '🌶️' : s === 'Medium' ? '🌶️🌶️' : '🔥'} {s}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
                     {/* Rating */}
                     <div className="form-group">
-                        <label className="form-label">Personal Rating</label>
-                        <div className="star-rating" role="radiogroup" aria-label="Personal rating">
-                            {[1, 2, 3, 4, 5].map((s) => (
-                                <span
-                                    key={s}
-                                    className={`star${s <= form.rating ? ' filled' : ''}`}
-                                    onClick={() => set('rating', s)}
-                                    role="radio"
-                                    aria-checked={s === form.rating}
-                                    aria-label={`${s} star${s !== 1 ? 's' : ''}`}
-                                    tabIndex={0}
-                                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); set('rating', s); } }}
-                                >
-                                    ★
-                                </span>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Open Now */}
-                    <div className="form-group">
-                        <div className="toggle-container">
-                            <span className="toggle-label" id="open-toggle-label">Open Now</span>
-                            <button
-                                type="button"
-                                role="switch"
-                                aria-checked={form.isOpenNow}
-                                aria-labelledby="open-toggle-label"
-                                className={`toggle${form.isOpenNow ? ' active' : ''}`}
-                                onClick={() => set('isOpenNow', !form.isOpenNow)}
+                        <label className="form-label" htmlFor="restaurant-rating">Rating</label>
+                        <div className="flex items-center gap-8">
+                            <input
+                                id="restaurant-rating"
+                                type="number"
+                                className="form-input"
+                                style={{ width: 100 }}
+                                min={0}
+                                max={5}
+                                step={0.1}
+                                value={form.rating}
+                                onChange={(e) => set('rating', parseFloat(e.target.value) || 0)}
                             />
+                            <span style={{ fontWeight: 700, color: 'var(--dora-yellow)', fontSize: '1.2rem' }}>
+                                ⭐ {form.rating.toFixed(1)}
+                            </span>
                         </div>
                     </div>
 
@@ -309,6 +293,18 @@ export default function RestaurantForm({ restaurant, onSave, onCancel }) {
                             placeholder="https://maps.google.com/..."
                         />
                     </div>
+
+                    {/* Website Link */}
+                    <div className="form-group">
+                        <label className="form-label" htmlFor="restaurant-website">Website Link</label>
+                        <input
+                            id="restaurant-website"
+                            className="form-input"
+                            value={form.websiteLink}
+                            onChange={(e) => set('websiteLink', e.target.value)}
+                            placeholder="https://..."
+                        />
+                    </div>
                 </form>
 
                 <div className="drawer-footer">
@@ -330,10 +326,8 @@ RestaurantForm.propTypes = {
         timeToServe: PropTypes.number,
         minPeople: PropTypes.number,
         maxPeople: PropTypes.number,
-        isOpenNow: PropTypes.bool,
+        openHours: PropTypes.string,
         dineOptions: PropTypes.arrayOf(PropTypes.string),
-        dietTags: PropTypes.arrayOf(PropTypes.string),
-        spiceLevel: PropTypes.string,
         rating: PropTypes.number,
         notes: PropTypes.string,
         linkGoogleMaps: PropTypes.string,

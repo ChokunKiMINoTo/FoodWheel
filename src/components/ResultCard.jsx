@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import PropTypes from 'prop-types';
+import { isOpenNow } from '../store/restaurantStore';
 
 function ResultCard({ restaurant, onSpinAgain, onExclude, spinning }) {
     if (!restaurant) {
@@ -13,10 +14,6 @@ function ResultCard({ restaurant, onSpinAgain, onExclude, spinning }) {
         );
     }
 
-    const stars = Array.from({ length: 5 }, (_, i) => (
-        <span key={i} className={`star${i < (restaurant.rating || 0) ? ' filled' : ''}`} aria-hidden="true">★</span>
-    ));
-
     return (
         <div className="result-panel">
             <div className="dora-card result-card" role="alert" aria-live="polite">
@@ -28,10 +25,12 @@ function ResultCard({ restaurant, onSpinAgain, onExclude, spinning }) {
                     ))}
                 </div>
 
-                <div className="detail-row">
-                    <span className="icon" aria-hidden="true">💰</span>
-                    {restaurant.priceRange}
-                </div>
+                {restaurant.priceRange && (
+                    <div className="detail-row">
+                        <span className="icon" aria-hidden="true">💰</span>
+                        ฿{restaurant.priceRange}
+                    </div>
+                )}
 
                 <div className="detail-row">
                     <span className="icon" aria-hidden="true">⏱️</span>
@@ -50,9 +49,19 @@ function ResultCard({ restaurant, onSpinAgain, onExclude, spinning }) {
                     </div>
                 )}
 
+                {restaurant.openHours && (
+                    <div className="detail-row">
+                        <span className="icon" aria-hidden="true">🕐</span>
+                        {restaurant.openHours}
+                        <span style={{ marginLeft: 8, fontWeight: 600, color: isOpenNow(restaurant) ? '#2ecc71' : 'var(--dora-red)' }}>
+                            {isOpenNow(restaurant) ? '(Open)' : '(Closed)'}
+                        </span>
+                    </div>
+                )}
+
                 <div className="detail-row">
                     <span className="icon" aria-hidden="true">⭐</span>
-                    <div className="star-rating" aria-label={`Rating: ${restaurant.rating || 0} out of 5`}>{stars}</div>
+                    <span style={{ fontWeight: 700 }}>{(restaurant.rating || 0).toFixed(1)}</span>
                 </div>
 
                 {restaurant.dineOptions?.length > 0 && (
@@ -96,6 +105,7 @@ ResultCard.propTypes = {
         timeToServe: PropTypes.number,
         minPeople: PropTypes.number,
         maxPeople: PropTypes.number,
+        openHours: PropTypes.string,
         location: PropTypes.string,
         rating: PropTypes.number,
         dineOptions: PropTypes.arrayOf(PropTypes.string),
