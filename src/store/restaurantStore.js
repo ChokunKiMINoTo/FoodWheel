@@ -1,5 +1,4 @@
 import { v4 as uuidv4 } from 'uuid';
-import { sampleRestaurants } from './sampleData';
 
 const STORAGE_KEY = 'foodwheel_restaurants';
 const HISTORY_KEY = 'foodwheel_history';
@@ -51,12 +50,7 @@ export function isOpenNow(restaurant) {
 // ──────── Restaurants CRUD ────────
 
 export function getRestaurants() {
-    let list = loadFromStorage(STORAGE_KEY, null);
-    if (list === null) {
-        list = sampleRestaurants;
-        saveToStorage(STORAGE_KEY, list);
-    }
-    return list;
+    return loadFromStorage(STORAGE_KEY, []);
 }
 
 export function saveRestaurants(list) {
