@@ -2,5 +2,5 @@ services:
   foodwheel:
     build: .
     ports:
-      - "88:88"
+      - "88:80"
     restart: unless-stopped
