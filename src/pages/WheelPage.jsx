@@ -27,6 +27,11 @@ export default function WheelPage() {
         });
     }, [restaurants, filters, excluded]);
 
+    const availableCuisines = useMemo(() => {
+        const all = restaurants.flatMap((r) => r.cuisineTypes || []);
+        return [...new Set(all)].sort();
+    }, [restaurants]);
+
     const handleResult = useCallback((restaurant) => {
         setResult(restaurant);
         addToHistory(restaurant);
@@ -55,6 +60,7 @@ export default function WheelPage() {
                     setFilters={setFilters}
                     candidateCount={candidates.length}
                     onReset={handleReset}
+                    availableCuisines={availableCuisines}
                 />
                 <SpinWheel
                     candidates={candidates}

@@ -1,8 +1,7 @@
 import { memo } from 'react';
 import PropTypes from 'prop-types';
-import { CUISINE_OPTIONS } from '../store/sampleData';
 
-function FilterPanel({ filters, setFilters, candidateCount, onReset }) {
+function FilterPanel({ filters, setFilters, candidateCount, onReset, availableCuisines }) {
     const toggleChip = (key, value) => {
         setFilters((prev) => {
             const arr = prev[key] || [];
@@ -65,7 +64,7 @@ function FilterPanel({ filters, setFilters, candidateCount, onReset }) {
                 <div className="filter-section">
                     <div className="filter-section-title" id="cuisine-filter-label">🍜 Cuisine</div>
                     <div className="chip-group" role="group" aria-labelledby="cuisine-filter-label" style={{ maxHeight: '140px', overflowY: 'auto' }}>
-                        {CUISINE_OPTIONS.map((c) => (
+                        {availableCuisines.map((c) => (
                             <button
                                 key={c}
                                 className={`chip${(filters.cuisines || []).includes(c) ? ' active' : ''}`}
@@ -153,6 +152,7 @@ FilterPanel.propTypes = {
     setFilters: PropTypes.func.isRequired,
     candidateCount: PropTypes.number.isRequired,
     onReset: PropTypes.func.isRequired,
+    availableCuisines: PropTypes.arrayOf(PropTypes.string).isRequired,
 };
 
 export default memo(FilterPanel);
