@@ -1,24 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
 
-const STORAGE_KEY = 'foodwheel_restaurants';
-const HISTORY_KEY = 'foodwheel_history';
-const EXCLUDED_KEY = 'foodwheel_excluded';
-
-// ──────── Helpers ────────
-
-function loadFromStorage(key, fallback) {
-    try {
-        const raw = localStorage.getItem(key);
-        return raw ? JSON.parse(raw) : fallback;
-    } catch {
-        return fallback;
-    }
-}
-
-function saveToStorage(key, data) {
-    localStorage.setItem(key, JSON.stringify(data));
-}
-
 // ──────── Open Hours Helper ────────
 
 /**
@@ -39,84 +20,79 @@ export function isOpenNow(restaurant) {
     const now = new Date();
     const nowMin = now.getHours() * 60 + now.getMinutes();
 
-    // Overnight case (e.g. 17:00-00:00 or 22:00-04:00)
     if (closeMin <= openMin) {
         return nowMin >= openMin || nowMin < closeMin;
     }
-    // Normal case (e.g. 10:00-22:00)
     return nowMin >= openMin && nowMin < closeMin;
 }
 
-// ──────── Restaurants CRUD ────────
+// ──────── CSV Export / Import ────────
 
-export function getRestaurants() {
-    return loadFromStorage(STORAGE_KEY, []);
+const CSV_HEADERS = [
+    'name', 'cuisineTypes', 'priceRange', 'location', 'timeToServe',
+    'minPeople', 'maxPeople', 'openHours', 'dineOptions', 'rating',
+    'notes', 'linkGoogleMaps', 'websiteLink',
+];
+
+export function exportCSV(restaurants) {
+    const rows = restaurants.map((r) =>
+        CSV_HEADERS.map((h) => {
+            const val = r[h];
+            if (Array.isArray(val)) return `"${val.join(', ')}"`;
+            if (typeof val === 'string' && (val.includes(',') || val.includes('"'))) return `"${val.replace(/"/g, '""')}"`;
+            return val ?? '';
+        }).join(',')
+    );
+    return [CSV_HEADERS.join(','), ...rows].join('\n');
 }
 
-export function saveRestaurants(list) {
-    saveToStorage(STORAGE_KEY, list);
+export function importCSV(csvText) {
+    const lines = csvText.trim().split('\n');
+    if (lines.length < 2) return [];
+    const headers = lines[0].split(',').map((h) => h.trim());
+    const results = [];
+    for (let i = 1; i < lines.length; i++) {
+        if (!lines[i].trim()) continue; // skip empty lines
+        const values = lines[i].match(/(\".*?\"|[^,]+|(?<=,)(?=,))/g) || [];
+        const obj = { id: uuidv4() };
+        headers.forEach((h, idx) => {
+            let val = (values[idx] || '').replace(/^"|"$/g, '').trim();
+            if (['cuisineTypes', 'dineOptions'].includes(h)) {
+                obj[h] = val ? val.split(',').map((s) => s.trim()) : [];
+            } else if (['timeToServe', 'minPeople', 'maxPeople'].includes(h)) {
+                obj[h] = parseInt(val, 10) || 0;
+            } else if (h === 'rating') {
+                obj[h] = parseFloat(val) || 0;
+            } else {
+                obj[h] = val;
+            }
+        });
+        obj.isFavorite = obj.isFavorite || false;
+        obj.lastVisitedDate = obj.lastVisitedDate || null;
+        obj.imageUrl = obj.imageUrl || '';
+        obj.openHours = obj.openHours || '';
+        results.push(obj);
+    }
+    return results;
 }
 
-export function addRestaurant(data) {
-    const list = getRestaurants();
-    const newItem = { ...data, id: uuidv4() };
-    list.push(newItem);
-    saveRestaurants(list);
-    return newItem;
+// ──────── API helpers ────────
+
+export async function fetchRestaurantsFromServer() {
+    const res = await fetch('/api/restaurants');
+    if (!res.ok) throw new Error('Failed to fetch restaurants');
+    const csvText = await res.text();
+    return importCSV(csvText);
 }
 
-export function updateRestaurant(id, data) {
-    const list = getRestaurants();
-    const idx = list.findIndex((r) => r.id === id);
-    if (idx === -1) return null;
-    list[idx] = { ...list[idx], ...data, id };
-    saveRestaurants(list);
-    return list[idx];
-}
-
-export function deleteRestaurant(id) {
-    let list = getRestaurants();
-    list = list.filter((r) => r.id !== id);
-    saveRestaurants(list);
-    return list;
-}
-
-// ──────── History ────────
-
-export function getHistory() {
-    return loadFromStorage(HISTORY_KEY, []);
-}
-
-export function addToHistory(restaurant) {
-    const history = getHistory();
-    history.unshift({
-        ...restaurant,
-        pickedAt: new Date().toISOString(),
+export async function saveRestaurantsToServer(restaurants) {
+    const csvText = exportCSV(restaurants);
+    const res = await fetch('/api/restaurants', {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: csvText,
     });
-    if (history.length > 50) history.length = 50;
-    saveToStorage(HISTORY_KEY, history);
-    return history;
-}
-
-export function clearHistory() {
-    saveToStorage(HISTORY_KEY, []);
-}
-
-// ──────── Excluded (session) ────────
-
-export function getExcluded() {
-    return loadFromStorage(EXCLUDED_KEY, []);
-}
-
-export function addExcluded(id) {
-    const ex = getExcluded();
-    if (!ex.includes(id)) ex.push(id);
-    saveToStorage(EXCLUDED_KEY, ex);
-    return ex;
-}
-
-export function clearExcluded() {
-    saveToStorage(EXCLUDED_KEY, []);
+    if (!res.ok) throw new Error('Failed to save restaurants');
 }
 
 // ──────── Filters ────────
@@ -142,53 +118,4 @@ export function filterRestaurants(restaurants, filters) {
         if (favoritesOnly && !r.isFavorite) return false;
         return true;
     });
-}
-
-// ──────── CSV Export / Import ────────
-
-export function exportCSV(restaurants) {
-    const headers = [
-        'name', 'cuisineTypes', 'priceRange', 'location', 'timeToServe',
-        'minPeople', 'maxPeople', 'openHours', 'dineOptions', 'rating',
-        'notes', 'linkGoogleMaps', 'websiteLink',
-    ];
-    const rows = restaurants.map((r) =>
-        headers.map((h) => {
-            const val = r[h];
-            if (Array.isArray(val)) return `"${val.join(', ')}"`;
-            if (typeof val === 'string' && (val.includes(',') || val.includes('"'))) return `"${val.replace(/"/g, '""')}"`;
-            return val ?? '';
-        }).join(',')
-    );
-    return [headers.join(','), ...rows].join('\n');
-}
-
-export function importCSV(csvText) {
-    const lines = csvText.trim().split('\n');
-    if (lines.length < 2) return [];
-    const headers = lines[0].split(',').map((h) => h.trim());
-    const results = [];
-    for (let i = 1; i < lines.length; i++) {
-        const values = lines[i].match(/(\".*?\"|[^,]+|(?<=,)(?=,))/g) || [];
-        const obj = { id: uuidv4() };
-        headers.forEach((h, idx) => {
-            let val = (values[idx] || '').replace(/^"|"$/g, '').trim();
-            if (['cuisineTypes', 'dineOptions'].includes(h)) {
-                obj[h] = val ? val.split(',').map((s) => s.trim()) : [];
-            } else if (['timeToServe', 'minPeople', 'maxPeople'].includes(h)) {
-                obj[h] = parseInt(val, 10) || 0;
-            } else if (h === 'rating') {
-                obj[h] = parseFloat(val) || 0;
-            } else {
-                obj[h] = val;
-            }
-        });
-        // defaults
-        obj.isFavorite = obj.isFavorite || false;
-        obj.lastVisitedDate = obj.lastVisitedDate || null;
-        obj.imageUrl = obj.imageUrl || '';
-        obj.openHours = obj.openHours || '';
-        results.push(obj);
-    }
-    return results;
 }

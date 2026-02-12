@@ -7,12 +7,24 @@ import { isOpenNow } from '../store/restaurantStore';
 export default function RestaurantPage() {
     const {
         restaurants,
+        loading,
         addRestaurant,
         updateRestaurant,
         deleteRestaurant,
         importRestaurants,
         exportCSV,
     } = useRestaurants();
+
+    if (loading) {
+        return (
+            <div className="restaurant-page" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '40vh' }}>
+                <div style={{ textAlign: 'center', color: 'var(--dora-text-light)' }}>
+                    <div style={{ fontSize: '2rem', marginBottom: 8 }}>🍽️</div>
+                    Loading restaurants...
+                </div>
+            </div>
+        );
+    }
 
     const [search, setSearch] = useState('');
     const [editing, setEditing] = useState(null); // null | 'new' | restaurant obj

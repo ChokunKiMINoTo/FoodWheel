@@ -15,7 +15,19 @@ const defaultFilters = {
 };
 
 export default function WheelPage() {
-    const { restaurants, history, excluded, addToHistory, addExcluded, clearExcluded } = useRestaurants();
+    const { restaurants, loading, history, excluded, addToHistory, addExcluded, clearExcluded } = useRestaurants();
+
+    if (loading) {
+        return (
+            <div className="wheel-page" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '40vh' }}>
+                <div style={{ textAlign: 'center', color: 'var(--dora-text-light)' }}>
+                    <div style={{ fontSize: '2rem', marginBottom: 8 }}>🎡</div>
+                    Loading...
+                </div>
+            </div>
+        );
+    }
+
     const [filters, setFilters] = useState(defaultFilters);
     const [result, setResult] = useState(null);
     const [spinning, setSpinning] = useState(false);
