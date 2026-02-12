@@ -100,6 +100,7 @@ export async function saveRestaurantsToServer(restaurants) {
 export function filterRestaurants(restaurants, filters) {
     const {
         cuisines = [],
+        locations = [],
         maxTime = null,
         peopleCount = null,
         openNow = false,
@@ -110,6 +111,7 @@ export function filterRestaurants(restaurants, filters) {
     return restaurants.filter((r) => {
         if (excludeIds.includes(r.id)) return false;
         if (cuisines.length > 0 && !r.cuisineTypes.some((c) => cuisines.includes(c))) return false;
+        if (locations.length > 0 && !locations.includes(r.location)) return false;
         if (maxTime !== null && r.timeToServe > maxTime) return false;
         if (peopleCount !== null) {
             if (peopleCount < r.minPeople || peopleCount > r.maxPeople) return false;

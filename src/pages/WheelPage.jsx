@@ -8,6 +8,7 @@ import { filterRestaurants } from '../store/restaurantStore';
 
 const defaultFilters = {
     cuisines: [],
+    locations: [],
     maxTime: null,
     peopleCount: null,
     openNow: false,
@@ -44,6 +45,11 @@ export default function WheelPage() {
         return [...new Set(all)].sort();
     }, [restaurants]);
 
+    const availableLocations = useMemo(() => {
+        const all = restaurants.map((r) => r.location).filter(Boolean);
+        return [...new Set(all)].sort();
+    }, [restaurants]);
+
     const handleResult = useCallback((restaurant) => {
         setResult(restaurant);
         addToHistory(restaurant);
@@ -73,6 +79,7 @@ export default function WheelPage() {
                     candidateCount={candidates.length}
                     onReset={handleReset}
                     availableCuisines={availableCuisines}
+                    availableLocations={availableLocations}
                 />
                 <SpinWheel
                     candidates={candidates}

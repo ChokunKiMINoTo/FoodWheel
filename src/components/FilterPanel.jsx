@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import PropTypes from 'prop-types';
 
-function FilterPanel({ filters, setFilters, candidateCount, onReset, availableCuisines }) {
+function FilterPanel({ filters, setFilters, candidateCount, onReset, availableCuisines, availableLocations }) {
     const toggleChip = (key, value) => {
         setFilters((prev) => {
             const arr = prev[key] || [];
@@ -77,6 +77,25 @@ function FilterPanel({ filters, setFilters, candidateCount, onReset, availableCu
                     </div>
                 </div>
 
+                {/* Location */}
+                {availableLocations.length > 0 && (
+                    <div className="filter-section">
+                        <div className="filter-section-title" id="location-filter-label">📍 Location</div>
+                        <div className="chip-group" role="group" aria-labelledby="location-filter-label" style={{ maxHeight: '140px', overflowY: 'auto' }}>
+                            {availableLocations.map((loc) => (
+                                <button
+                                    key={loc}
+                                    className={`chip${(filters.locations || []).includes(loc) ? ' active' : ''}`}
+                                    onClick={() => toggleChip('locations', loc)}
+                                    aria-pressed={(filters.locations || []).includes(loc)}
+                                >
+                                    {loc}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
                 {/* Max Time */}
                 <div className="filter-section">
                     <div className="filter-section-title">⏱️ Max Time (minutes)</div>
@@ -144,6 +163,7 @@ function FilterPanel({ filters, setFilters, candidateCount, onReset, availableCu
 FilterPanel.propTypes = {
     filters: PropTypes.shape({
         cuisines: PropTypes.arrayOf(PropTypes.string),
+        locations: PropTypes.arrayOf(PropTypes.string),
         maxTime: PropTypes.number,
         peopleCount: PropTypes.number,
         openNow: PropTypes.bool,
@@ -153,6 +173,7 @@ FilterPanel.propTypes = {
     candidateCount: PropTypes.number.isRequired,
     onReset: PropTypes.func.isRequired,
     availableCuisines: PropTypes.arrayOf(PropTypes.string).isRequired,
+    availableLocations: PropTypes.arrayOf(PropTypes.string).isRequired,
 };
 
 export default memo(FilterPanel);
