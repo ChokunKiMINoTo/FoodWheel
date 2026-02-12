@@ -17,7 +17,7 @@ COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/http.d/default.conf
 
 # Copy API server
-COPY server.js /app/server.js
+COPY server.cjs /app/server.cjs
 COPY package.json /app/package.json
 
 # Install only production deps for express
